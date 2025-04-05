@@ -1,11 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config()
 import OpenAI from 'openai';
 import readline from 'readline-sync';
-import dotenv from 'dotenv';
 import { sellToken } from './helpers/sellToken.js';
 import { buyToken } from './helpers/buyToken.js';
 import { getTokenPrice } from './helpers/getTokenPrice.js';
 import { validateArbitrageOpportunity } from './helpers/validateArbitrageOpportunity.js';
-dotenv.config()
+
 
 // Initialize OpenAI client with API key
 const client = new OpenAI({
@@ -20,8 +21,14 @@ const tools = {
   validateArbitrageOpportunity, validateArbitrageOpportunity
 };
 
-let wallet_balance = 1000
-let minimum_profit_margin = 1.25
+let wallet_balance = process.env.WALLET_BALANCE
+let minimum_profit_margin = process.env.MIN_PROFIT_MARGIN
+
+
+console.log("Wallet Balance:", wallet_balance);
+console.log("Minimum Profit Margin:", minimum_profit_margin);
+
+
 
 const systemPrompt = `You're an AI crypto arbitrage assistant with start plan, action, observation, and output states.Your goal is to find and act on price differences between tokens across exchanges.
 
@@ -40,7 +47,7 @@ Available tools:
 --getTokenPrice: Accepts a token name as a string (e.g., "ETH") and returns a formatted string showing real-time prices of that token across multiple exchanges (Binance, Coinbase Pro, Kraken, KuCoin, Bybit, Gate.io). Includes errors for unsupported pairs.
 --buyToken: Accepts exchange, token, walletBalance, and tokenPrice, uses 10% of the wallet balance to buy the token, and returns an observation message along with the amount of tokens bought and the token price used.
 --sellToken: Accepts exchange, token, amount (same as the amount bought in the buyToken function), tokenPrice and investedAmount (in buyToken Operation). Executes a sell operation, logs the transaction details, and returns an object containing the observation message and the total amount received and calculated profit from how much was invested by buying and how much received at the end of transaction.
---validateArbitrageOpportunity: Accepts buyPrice, sellPrice, and user-defined ${minimum_profit_margin}%, then returns true if the trade meets the required profit margin, otherwise false.
+--validateArbitrageOpportunity: Accepts buyPrice, sellPrice, and user-defined minimum_profit_margin, then calculates the profit margin and returns an object indicating whether the trade meets the required margin, including a message, the calculated percentage, and a proceed flag (true/false).
 
 Example flow:
 User: “Is there any BTC arbitrage right now?”
@@ -55,7 +62,7 @@ Plan :{ "type": "plan", "plan": "I will analyze the BTC prices across exchanges.
 
 Observation: { "type": "observation", "observation": "Price arbitrage detected. Need to verify if the profit meets the user-defined minimum margin before executing the trade." }
 
-Action: { "type": "action", "function": "validateArbitrageOpportunity", "input": { "exchange": "coinbase", "token": "BTC" } } 
+Action: { "type": "action", "function": "validateArbitrageOpportunity", "input": {  buyPrice: 1787.09, sellPrice: 1788.69, 'minimum_profit_margin': ${minimum_profit_margin} } } 
 
 Observation: { "type": "observation", "observation": "The arbitrage opportunity meets the user-defined profit margin. Proceeding with the trade.","proceed": true,"calculated_profit_percentage": "calculated_profit_percentage" }
 
@@ -83,6 +90,9 @@ Available exchanges:
 - kraken
 - bybit
 - gateio
+
+IMPORTANT : If there are no viable arbitrage opportunities across the exchanges as if price difference does not meet the required profit margin then EXIT LOOP by following output .
+Output: "{ "type": 'EXECUTED', "EXECUTED": 'No profitable arbitrage opportunity' }"
 
 `
 
@@ -148,7 +158,7 @@ async function chat() {
 
           case 'buyToken':
             observation = await fn(parsed.input.exchange, parsed.input.token, wallet_balance, parsed.input.tokenPrice);
-            // export async function buyToken(exchange, token, walletBalance, tokenPrice) {
+            //  export async function buyToken(exchange, token, walletBalance, tokenPrice) {
 
             break;
 
@@ -160,7 +170,9 @@ async function chat() {
             break;
 
           case 'validateArbitrageOpportunity':
-            observation = await fn(parsed.input.buyPrice, parsed.input.sellPrice, parsed.input.profitMargin);
+
+
+            observation = await fn(parsed.input.buyPrice, parsed.input.sellPrice, parsed.input.minimum_profit_margin);
             continue;
 
           default:

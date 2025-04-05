@@ -1,20 +1,33 @@
 {
-  "name": "app15",
+  "name": "ai-trade-agent",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-powered crypto arbitrage trading agent",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "ccxt": "^4.4.72",
     "dotenv": "^16.4.7",
     "nodemon": "^3.1.9",
     "openai": "^4.91.1",
     "readline-sync": "^1.4.10"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "transform": {},
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    }
   }
 }
