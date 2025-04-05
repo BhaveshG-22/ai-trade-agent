@@ -20,8 +20,8 @@ const tools = {
   validateArbitrageOpportunity, validateArbitrageOpportunity
 };
 
-let wallet_balance = 20
-let minimum_profit_margin = 2.5
+let wallet_balance = 1000
+let minimum_profit_margin = 1.25
 
 const systemPrompt = `You're an AI crypto arbitrage assistant with start plan, action, observation, and output states.Your goal is to find and act on price differences between tokens across exchanges.
 
@@ -37,46 +37,39 @@ Wait for observation results after your action. Based on the results, you may ne
 Finally, provide the AI response based on the start prompt and observation. Format your final output as {"type": "output", "output": "your final answer here"}.
 
 Available tools:
---getTokenPrice: Accepts a token name as a string and returns the token price details as a string.
+--getTokenPrice: Accepts a token name as a string (e.g., "ETH") and returns a formatted string showing real-time prices of that token across multiple exchanges (Binance, Coinbase Pro, Kraken, KuCoin, Bybit, Gate.io). Includes errors for unsupported pairs.
 --buyToken: Accepts exchange, token, walletBalance, and tokenPrice, uses 10% of the wallet balance to buy the token, and returns an observation message along with the amount of tokens bought and the token price used.
 --sellToken: Accepts exchange, token, amount (same as the amount bought in the buyToken function), tokenPrice and investedAmount (in buyToken Operation). Executes a sell operation, logs the transaction details, and returns an object containing the observation message and the total amount received and calculated profit from how much was invested by buying and how much received at the end of transaction.
 --validateArbitrageOpportunity: Accepts buyPrice, sellPrice, and user-defined ${minimum_profit_margin}%, then returns true if the trade meets the required profit margin, otherwise false.
 
 Example flow:
+User: “Is there any BTC arbitrage right now?”
 
-User: “Is there any ETH arbitrage right now?”
+Plan: { "type": "plan", "plan": "I will get BTC prices from all available exchanges" }
 
-Plan: { "type": "plan", "plan": "I will get ETH prices from all available exchanges" }
+Action: { "type": "action", "function": "getTokenPrice", "input": { "token": "BTC" } }
 
-Action: { "type": "action", "function": "getTokenPrice", "input": { "exchange": "binance", "token": "ETH" } }
+Observation:{ "type": "observation", "observation": "📥 Observation: ✅ binance: $83194.77 ❌ coinbasepro: ccxt[exchangeId] is not a constructor ✅ kraken: $83177.5 ✅ kucoin: $83193.8 ✅ bybit: $83198.4 ✅ gateio: $83187.2" } 
 
-Observation:{ "type": "observation", "observation": "The ETH prices in Binance is 3220.50" }
-
-Action: { "type": "action", "function": "getTokenPrice", "input": { "exchange": "coinbase", "token": "ETH" } }
-
-Observation:{ "type": "observation", "observation": "The ETH prices in Coinbase is 3300.00" }
-
-Action: { "type": "action", "function": "getTokenPrice", "input": { "exchange": "kucoin", "token": "ETH" } }
-
-Observation:{ "type": "observation", "observation": "The ETH prices in kucoin is 3260.00" }
+Plan :{ "type": "plan", "plan": "I will analyze the BTC prices across exchanges. If there's a price difference that meets the minimum profit margin requirement, I will validate the arbitrage opportunity."}
 
 Observation: { "type": "observation", "observation": "Price arbitrage detected. Need to verify if the profit meets the user-defined minimum margin before executing the trade." }
 
-Action: { "type": "action", "function": "validateArbitrageOpportunity", "input": { "exchange": "coinbase", "token": "ETH" } } 
+Action: { "type": "action", "function": "validateArbitrageOpportunity", "input": { "exchange": "coinbase", "token": "BTC" } } 
 
 Observation: { "type": "observation", "observation": "The arbitrage opportunity meets the user-defined profit margin. Proceeding with the trade.","proceed": true,"calculated_profit_percentage": "calculated_profit_percentage" }
 
-Plan: { "type": "plan", "plan": "The ETH is cheaper on Binance and more priced in Coinbase, I will now buy ETH on Binance and sell it on Coinbase." }
+Plan: { "type": "plan", "plan": "The BTC is cheaper on Binance and more priced in Coinbase, I will now buy BTC on Kraken and sell it on Bybit." }
 
-Action: "{ "type": "action", "function": "buyToken", "input": { "exchange": "binance", "token": "ETH","walletBalance":"current_Wallet_Balance","tokenPrice":"current Token Price in binance"} }"
+Action: "{ "type": "action", "function": "buyToken", "input": { "exchange": "binance", "token": "BTC","walletBalance":"current_Wallet_Balance","tokenPrice":"current Token Price in binance"} }"
 
-Observation: "{ "type": "observation", "observation": "Bought X ETH on Binance", "amount":"X" }"
+Observation: "{ "type": "observation", "observation": "Bought X BTC on Kraken", "amount":"X" }"
 
-Action: "{ "type": "action", function: sellToken, input: { "exchange": "coinbase", "token": "ETH","amount":"X" ,initialWalletBalance } } }"
+Action: "{ "type": "action", function: sellToken, input: { "exchange": "coinbase", "token": "BTC","amount":"X" ,initialWalletBalance } } }"
 
-Observation: "{ "type": "observation", "observation": "Sold X ETH on Coinbase , received $" }"
+Observation: "{ "type": "observation", "observation": "Sold X BTC on Bybit , received $" }"
 
-Output: "{ "type": "output", "output": "Arbitrage completed. Bought  ETH on Binance at $3220.50, sold on Coinbase at $3300.00.}"
+Output: "{ "type": "output", "output": "Arbitrage completed. Bought  BTC on Binance at $3220.50, sold on Coinbase at $3300.00.}"
 
 Output: "{ "type": "EXECUTED", "EXECUTED": "Arbitrage completed "
  
@@ -150,7 +143,7 @@ async function chat() {
 
         switch (parsed.function) {
           case 'getTokenPrice':
-            observation = await fn(parsed.input.exchange, parsed.input.token);
+            observation = await fn(parsed.input.token);
             break;
 
           case 'buyToken':
